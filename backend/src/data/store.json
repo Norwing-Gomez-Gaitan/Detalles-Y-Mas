@@ -1,0 +1,155 @@
+{
+  "config": {
+    "id": 1,
+    "nombre": "Detalles y Más",
+    "lema": "Hecho con amor para cada ocasión",
+    "telefono": "8485-6722",
+    "whatsapp": "8485-6722",
+    "instagram": "@detallesymas.ni",
+    "facebook": "https://www.facebook.com/Aracelly82",
+    "direccion_cobertura": "Km8 carretera norte entrada Rocargo 4c al Norte 2 abajo media al sur",
+    "horario": "Lunes a Sábado: 8:00 AM - 6:00 PM",
+    "sobre_nosotros": "Somos un taller de manualidades y detalles personalizados en Nicaragua. Elaboramos arreglos, adornos y recuerdos únicos hechos a mano con pasión y amor para cada ocasión especial."
+  },
+  "categories": [
+    {
+      "id": 1,
+      "nombre": "Arreglos florales",
+      "descripcion": "Rosas eternas, girasoles y flores finas combinadas.",
+      "activa": true
+    },
+    {
+      "id": 2,
+      "nombre": "Adornos navideños",
+      "descripcion": "Coronas, esferas personalizadas y detalles para el hogar.",
+      "activa": true
+    },
+    {
+      "id": 3,
+      "nombre": "Regalos personalizados",
+      "descripcion": "Cajas sorpresa, tazas, cuadros y recuerdos con nombres.",
+      "activa": true
+    },
+    {
+      "id": 4,
+      "nombre": "Sweet 15 y Cumpleaños",
+      "descripcion": "Centros de mesa, globos burbuja y detalles temáticos.",
+      "activa": true
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "categoria_id": 1,
+      "codigo": "ARR-001",
+      "slug": "arreglo-floral-romantico-rosa-eterna",
+      "nombre": "Arreglo Floral Romántico Rosa Eterna",
+      "descripcion": "Elegante base de cerámica con rosas aterciopeladas, follaje fino, lazo en cinta satinada borgoña y tarjeta personalizada.",
+      "precio_venta": 650,
+      "tiempo_elaboracion_min": 60,
+      "es_personalizable": true,
+      "stock_terminado": 3,
+      "imagen_url": "https://images.unsplash.com/photo-1561181286-d3fee7d55364?auto=format&fit=crop&w=800&q=80",
+      "visible_catalogo": true,
+      "destacado": true,
+      "activo": true,
+      "categoria": {
+        "id": 1,
+        "nombre": "Arreglos florales"
+      },
+      "imagenes": [
+        {
+          "id": 1,
+          "url": "https://images.unsplash.com/photo-1561181286-d3fee7d55364?auto=format&fit=crop&w=800&q=80",
+          "orden": 1
+        },
+        {
+          "id": 2,
+          "url": "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=800&q=80",
+          "orden": 2
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "categoria_id": 4,
+      "codigo": "SWT-002",
+      "slug": "caja-sorpresa-sweet-15-con-luces-led",
+      "nombre": "Caja Sorpresa Sweet 15 con Luces LED",
+      "descripcion": "Caja de madera con acabado kraft y toques dorados, mini rosas, luces LED de hadas y mensaje de felicitación con nombre de la quinceañera.",
+      "precio_venta": 850,
+      "tiempo_elaboracion_min": 90,
+      "es_personalizable": true,
+      "stock_terminado": 2,
+      "imagen_url": "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80",
+      "visible_catalogo": true,
+      "destacado": true,
+      "activo": true,
+      "categoria": {
+        "id": 4,
+        "nombre": "Sweet 15 y Cumpleaños"
+      },
+      "imagenes": [
+        {
+          "id": 3,
+          "url": "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80",
+          "orden": 1
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "categoria_id": 2,
+      "codigo": "NAV-003",
+      "slug": "esfera-navidena-personalizada-con-nieve",
+      "nombre": "Esfera Navideña Personalizada con Nieve",
+      "descripcion": "Esfera acrílica transparente con nieve artificial, nombre caligrafiado en dorado o borgoña y lazo decorativo para el árbol.",
+      "precio_venta": 180,
+      "tiempo_elaboracion_min": 30,
+      "es_personalizable": true,
+      "stock_terminado": 10,
+      "imagen_url": "https://images.unsplash.com/photo-1512474932049-78ac69ede12c?auto=format&fit=crop&w=800&q=80",
+      "visible_catalogo": true,
+      "destacado": true,
+      "activo": true,
+      "categoria": {
+        "id": 2,
+        "nombre": "Adornos navideños"
+      },
+      "imagenes": [
+        {
+          "id": 4,
+          "url": "https://images.unsplash.com/photo-1512474932049-78ac69ede12c?auto=format&fit=crop&w=800&q=80",
+          "orden": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "categoria_id": 4,
+      "codigo": "GLO-004",
+      "slug": "arreglo-de-globos-burbuja-con-chocolates",
+      "nombre": "Arreglo de Globos Burbuja con Dulces",
+      "descripcion": "Globo burbuja cristal inflado con frases en vinil, base de dulces y chocolates surtidos con lazo borgoña artesanal.",
+      "precio_venta": 750,
+      "tiempo_elaboracion_min": 45,
+      "es_personalizable": true,
+      "stock_terminado": 1,
+      "imagen_url": "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80",
+      "visible_catalogo": true,
+      "destacado": true,
+      "activo": true,
+      "categoria": {
+        "id": 4,
+        "nombre": "Sweet 15 y Cumpleaños"
+      },
+      "imagenes": [
+        {
+          "id": 5,
+          "url": "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80",
+          "orden": 1
+        }
+      ]
+    }
+  ]
+}
