@@ -1,3 +1,4 @@
+HEAD
 # Sistema Web Completo: Detalles y Más 🌸
 
 > **"Hecho con amor para cada ocasión"**  
@@ -228,4 +229,7 @@ npm run dev
 - **Cookies HttpOnly y JWT:** Sesiones seguras sin riesgo de extracción por XSS en el navegador.
 - **Rate Limiting:** Protección contra ataques de fuerza bruta en el endpoint de autenticación `/api/admin/auth/login`.
 - **Mitigación de Cold Start en Render:** Catálogo público configurado con ISR (revalidación cada 5 minutos) para responder de inmediato sin esperar el arranque del backend.
-
+ 
+# Detalles-Y-Mas
+Plataforma de manualidades
+4fa1a9ee9b78d8a4a29b5c61500991401c515f0d
