@@ -14,6 +14,7 @@ import {
   Loader2,
   Edit,
   Search,
+  Download,
 } from "lucide-react";
 
 export default function AdminInventarioPage() {
@@ -115,6 +116,23 @@ export default function AdminInventarioPage() {
 
   const handleGuardarMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formMaterial.nombre || formMaterial.nombre.trim().length === 0) {
+      alert("Validación: El nombre del material es obligatorio.");
+      return;
+    }
+    if (formMaterial.stock_actual < 0) {
+      alert("Validación: El stock actual no puede ser un número negativo.");
+      return;
+    }
+    if (formMaterial.stock_minimo < 0) {
+      alert("Validación: El stock mínimo no puede ser negativo.");
+      return;
+    }
+    if (formMaterial.costo_unitario < 0) {
+      alert("Validación: El costo unitario no puede ser negativo.");
+      return;
+    }
+
     try {
       const endpoint = editId ? `/api/admin/materiales/${editId}` : "/api/admin/materiales";
       const method = editId ? "PUT" : "POST";
@@ -134,6 +152,19 @@ export default function AdminInventarioPage() {
   const handleGuardarAjuste = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ajusteMaterial) return;
+
+    const cant = Number(formAjuste.cantidad);
+    if (isNaN(cant) || cant === 0) {
+      alert("Validación: Ingrese una cantidad válida diferente de cero.");
+      return;
+    }
+
+    const stockActual = Number(ajusteMaterial.stock_actual);
+    if ((formAjuste.tipo === "merma" || formAjuste.tipo === "consumo_produccion") && (stockActual - Math.abs(cant) < 0)) {
+      alert(`Validación: No puede registrar una salida de ${Math.abs(cant)} unidades porque el stock actual es de solo ${stockActual} ${ajusteMaterial.unidad_medida}.`);
+      return;
+    }
+
     try {
       await apiFetch(`/api/admin/materiales/${ajusteMaterial.id}/ajustar`, {
         method: "POST",
@@ -194,13 +225,28 @@ export default function AdminInventarioPage() {
             </button>
           </div>
 
-          <button
-            onClick={abrirModalCrear}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Material</span>
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+                const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
+                window.open(`${backendUrl}/api/admin/reportes/exportar-csv?tipo=materiales${token ? `&token=${encodeURIComponent(token)}` : ""}`, "_blank");
+              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-marfil hover:bg-crema border border-kraft text-chocolate font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-2xs"
+              title="Descargar reporte consolidado de inventario en formato CSV estructurado para Excel"
+            >
+              <Download className="w-4 h-4 text-dorado" />
+              <span>Exportar Inventario (CSV)</span>
+            </button>
+
+            <button
+              onClick={abrirModalCrear}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Material</span>
+            </button>
+          </div>
         </div>
 
         {/* Tabla de Materiales */}

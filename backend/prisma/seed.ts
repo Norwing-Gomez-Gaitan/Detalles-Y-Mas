@@ -18,7 +18,7 @@ async function main() {
       whatsapp: '8485-6722',
       instagram: '@detallesymas.ni',
       facebook: 'https://www.facebook.com/Aracelly82',
-      direccion_cobertura: 'Managua, Nicaragua. Envíos y entregas a todo el país vía encomienda y delivery.',
+      direccion_cobertura: 'Km8 carretera norte entrada Rocargo 4c al Norte 2 abajo media al sur',
       horario: 'Lunes a Sábado: 8:00 AM - 6:00 PM',
       sobre_nosotros: 'Somos un emprendimiento nicaragüense apasionado por convertir momentos especiales en recuerdos inolvidables. Diseñamos arreglos florales, detalles personalizados para cumpleaños, quinceaños (Sweet 15), bodas, graduaciones y festividades navideñas. Cada pieza es elaborada a mano con materiales de la más alta calidad y un acabado impecable.'
     }

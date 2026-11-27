@@ -92,18 +92,49 @@ export class AdminPedidosController {
   }
 
   /**
-   * Crear pedido con cálculo automático de totales
+   * Crear pedido con cálculo automático y validaciones lógicas de negocio
    */
   static async createPedido(req: Request, res: Response, next: NextFunction) {
     try {
       const data = pedidoSchema.parse(req.body);
 
-      // Calcular subtotales
+      // 1. Validación de detalles
+      if (!data.detalles || data.detalles.length === 0) {
+        return res.status(400).json({ error: 'El pedido debe incluir al menos un producto o ítem personalizado.' });
+      }
+
+      // 2. Validación de cliente existente
+      const cliente = await prisma.cliente.findUnique({
+        where: { id: data.cliente_id }
+      });
+      if (!cliente) {
+        return res.status(400).json({ error: 'El cliente seleccionado no existe en el sistema.' });
+      }
+
+      // 3. Validación de dirección para envíos
+      if (data.tipo_entrega === 'domicilio' || data.tipo_entrega === 'envio') {
+        if (!data.direccion_entrega || data.direccion_entrega.trim().length === 0) {
+          return res.status(400).json({
+            error: 'Para pedidos con entrega a domicilio o envío, la dirección de entrega es obligatoria.'
+          });
+        }
+      }
+
+      // 4. Calcular subtotales y validar precios e ítems
       let subtotalDetalles = 0;
-      const detallesData = data.detalles.map(d => {
+      const detallesData = [];
+
+      for (const d of data.detalles) {
+        if (d.cantidad <= 0) {
+          return res.status(400).json({ error: `La cantidad de "${d.descripcion}" debe ser mayor a 0.` });
+        }
+        if (d.precio_unitario < 0) {
+          return res.status(400).json({ error: `El precio unitario de "${d.descripcion}" no puede ser negativo.` });
+        }
+
         const sub = d.cantidad * d.precio_unitario;
         subtotalDetalles += sub;
-        return {
+        detallesData.push({
           producto_id: d.producto_id || null,
           descripcion: d.descripcion,
           cantidad: d.cantidad,
@@ -112,10 +143,18 @@ export class AdminPedidosController {
           personalizacion: d.personalizacion || null,
           imagen_referencia_url: d.imagen_referencia_url || null,
           subtotal: sub
-        };
-      });
+        });
+      }
 
-      const total = Math.max(0, subtotalDetalles + data.costo_envio - data.descuento);
+      // 5. Validación lógica de descuento
+      const subtotalConEnvio = subtotalDetalles + (data.costo_envio || 0);
+      if (data.descuento > subtotalConEnvio) {
+        return res.status(400).json({
+          error: `El descuento aplicado (C$ ${data.descuento.toFixed(2)}) no puede exceder el total del pedido antes de descuento (C$ ${subtotalConEnvio.toFixed(2)}).`
+        });
+      }
+
+      const total = Math.max(0, subtotalConEnvio - data.descuento);
 
       const nuevoPedido = await prisma.pedido.create({
         data: {
@@ -169,11 +208,43 @@ export class AdminPedidosController {
   }
 
   /**
-   * Registrar pago o anticipo a un pedido
+   * Registrar pago o anticipo a un pedido con validación de saldo
    */
   static async registrarPago(req: Request, res: Response, next: NextFunction) {
     try {
       const data = pagoSchema.parse(req.body);
+
+      // 1. Obtener pedido y verificar estado
+      const pedido = await prisma.pedido.findUnique({
+        where: { id: data.pedido_id },
+        include: { pagos: true }
+      });
+
+      if (!pedido) {
+        return res.status(404).json({ error: 'El pedido especificado no existe.' });
+      }
+
+      if (pedido.estado === 'cancelado') {
+        return res.status(400).json({ error: 'No se pueden registrar pagos en un pedido cancelado.' });
+      }
+
+      // 2. Calcular saldo actual pendiente
+      const totalPedido = Number(pedido.total);
+      const totalPagado = pedido.pagos.reduce((sum, p) => sum + Number(p.monto), 0);
+      const saldoPendiente = Math.max(0, totalPedido - totalPagado);
+
+      if (saldoPendiente <= 0.009) {
+        return res.status(400).json({
+          error: 'Este pedido ya se encuentra totalmente saldado (Saldo C$ 0.00).'
+        });
+      }
+
+      // 3. Validar que el pago no exceda el saldo
+      if (data.monto > saldoPendiente + 0.01) {
+        return res.status(400).json({
+          error: `El monto a pagar (C$ ${data.monto.toFixed(2)}) supera el saldo pendiente (C$ ${saldoPendiente.toFixed(2)}). Ingrese un monto menor o igual al saldo.`
+        });
+      }
 
       const nuevoPago = await prisma.pago.create({
         data: {

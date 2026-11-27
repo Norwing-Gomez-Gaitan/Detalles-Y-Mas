@@ -44,9 +44,9 @@ export const categoriaSchema = z.object({
 export const materialSchema = z.object({
   nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(120),
   unidad_medida: z.string().min(1, 'La unidad de medida es requerida').max(20),
-  stock_actual: z.number().nonnegative().default(0),
-  stock_minimo: z.number().nonnegative().default(0),
-  costo_unitario: z.number().nonnegative().default(0),
+  stock_actual: z.number().min(0, 'El stock actual no puede ser negativo').default(0),
+  stock_minimo: z.number().min(0, 'El stock mínimo no puede ser negativo').default(0),
+  costo_unitario: z.number().min(0, 'El costo unitario no puede ser negativo').default(0),
   proveedor_id: z.number().int().positive().optional().nullable(),
   activo: z.boolean().default(true),
 });

@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,6 +10,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        artesanoDark: {
+          bg: "#140E0C",
+          surface: "#1E1614",
+          card: "#261D1A",
+          hover: "#322723",
+          border: "#44342E",
+          input: "#2A201C",
+          text: "#F7EFE2",
+          muted: "#B8A394",
+        },
         borgona: {
           DEFAULT: "#8E2A45",
           dark: "#6F1F36",

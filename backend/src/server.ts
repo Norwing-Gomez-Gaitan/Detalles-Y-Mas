@@ -6,6 +6,11 @@ import publicRoutes from './routes/public.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+// Permitir serialización limpia de BigInt en respuestas JSON de PostgreSQL/Prisma
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 const app = express();
 
 // Configuración de CORS segura para Vercel y desarrollo local

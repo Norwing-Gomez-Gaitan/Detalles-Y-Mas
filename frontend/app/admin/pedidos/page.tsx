@@ -21,6 +21,7 @@ import {
   Calendar,
   AlertCircle,
   Truck,
+  Download,
 } from "lucide-react";
 
 export default function AdminPedidosPage() {
@@ -173,9 +174,35 @@ export default function AdminPedidosPage() {
   const handleGuardarPedido = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formPedido.detalles.length === 0) {
-      alert("Debe agregar al menos un producto o pieza al pedido");
+      alert("Validación: Debe agregar al menos un producto o ítem personalizado al pedido.");
       return;
     }
+
+    for (const d of formPedido.detalles) {
+      if (!d.descripcion || d.descripcion.trim().length === 0) {
+        alert("Validación: Cada ítem del pedido debe tener una descripción.");
+        return;
+      }
+      if (d.cantidad <= 0) {
+        alert(`Validación: La cantidad de "${d.descripcion}" debe ser al menos 1.`);
+        return;
+      }
+      if (d.precio_unitario < 0) {
+        alert(`Validación: El precio unitario de "${d.descripcion}" no puede ser negativo.`);
+        return;
+      }
+    }
+
+    if (formPedido.tipo_entrega === "envio_domicilio" && !formPedido.direccion_entrega.trim()) {
+      alert("Validación: Ingrese la dirección exacta para entregas a domicilio.");
+      return;
+    }
+
+    if (formPedido.descuento > subtotalLineas + formPedido.costo_envio) {
+      alert(`Validación: El descuento (C$ ${formPedido.descuento}) no puede exceder el total antes de descuento (C$ ${(subtotalLineas + formPedido.costo_envio).toFixed(2)}).`);
+      return;
+    }
+
     try {
       setSubmittingPedido(true);
       await apiFetch("/api/admin/pedidos", {
@@ -206,7 +233,7 @@ export default function AdminPedidosPage() {
   const abrirModalPago = (ped: any) => {
     setPedidoParaPago(ped);
     setFormPago({
-      monto: ped.saldo_pendiente > 0 ? ped.saldo_pendiente : 200,
+      monto: ped.saldo_pendiente > 0 ? ped.saldo_pendiente : 0,
       metodo: "transferencia",
       es_anticipo: ped.total_pagado === 0,
       referencia: `TR-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -218,6 +245,22 @@ export default function AdminPedidosPage() {
   const handleRegistrarPago = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pedidoParaPago) return;
+
+    if (formPago.monto <= 0) {
+      alert("Validación: El monto del pago debe ser mayor a C$ 0.00.");
+      return;
+    }
+
+    if (pedidoParaPago.saldo_pendiente <= 0.009) {
+      alert("Validación: Este pedido ya se encuentra completamente pagado (Saldo C$ 0.00).");
+      return;
+    }
+
+    if (formPago.monto > pedidoParaPago.saldo_pendiente + 0.01) {
+      alert(`Validación: El monto ingresado (C$ ${formPago.monto.toFixed(2)}) supera el saldo pendiente (C$ ${pedidoParaPago.saldo_pendiente.toFixed(2)}). Por favor corrija el monto.`);
+      return;
+    }
+
     try {
       await apiFetch("/api/admin/pedidos/pagos", {
         method: "POST",
@@ -310,13 +353,28 @@ export default function AdminPedidosPage() {
             </div>
           </div>
 
-          <button
-            onClick={abrirModalCrearPedido}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Crear Pedido</span>
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+                const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
+                window.open(`${backendUrl}/api/admin/reportes/exportar-csv?tipo=pedidos${token ? `&token=${encodeURIComponent(token)}` : ""}`, "_blank");
+              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-marfil hover:bg-crema border border-kraft text-chocolate font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-2xs"
+              title="Descargar listado completo de pedidos en formato CSV estructurado para Excel"
+            >
+              <Download className="w-4 h-4 text-dorado" />
+              <span>Exportar Pedidos (CSV)</span>
+            </button>
+
+            <button
+              onClick={abrirModalCrearPedido}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Crear Pedido</span>
+            </button>
+          </div>
         </div>
 
         {/* Vista Kanban o Vista Tabla */}

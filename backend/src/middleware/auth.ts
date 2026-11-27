@@ -27,6 +27,11 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
       }
     }
 
+    // Permitir token por query param para descargas directas de archivos (e.g. CSV)
+    if (!token && req.query?.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
+
     if (!token) {
       return res.status(401).json({ error: 'No autorizado. Se requiere inicio de sesión.' });
     }

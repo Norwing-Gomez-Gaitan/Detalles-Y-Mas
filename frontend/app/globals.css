@@ -52,3 +52,105 @@ button, input, select, textarea {
   background: #C9A24D;
 }
 
+/* ========================================================
+   MODO OSCURO PARA PANEL DE ADMINISTRACIÓN Y FUNCIONES
+   Paleta nocturna artesanal de alta gama (Cacao Profundo y Dorado)
+   ======================================================== */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #140E0C;
+  color: #F7EFE2;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #140E0C;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3F302B;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #C9A24D;
+}
+
+/* Adaptación automática de clases artesanales en modo oscuro */
+.dark .bg-marfil {
+  background-color: #1E1614 !important;
+}
+
+.dark .bg-crema {
+  background-color: #140E0C !important;
+}
+
+.dark .hover\:bg-crema:hover {
+  background-color: #281F1C !important;
+}
+
+.dark .border-kraft {
+  border-color: #3F302B !important;
+}
+
+.dark .border-kraft\/40,
+.dark .border-kraft\/50,
+.dark .border-kraft\/60,
+.dark .border-kraft\/70 {
+  border-color: #382A25 !important;
+}
+
+.dark .text-chocolate {
+  color: #F7EFE2 !important;
+}
+
+.dark .text-cacao {
+  color: #B8A394 !important;
+}
+
+/* Formularios y campos de entrada en Modo Oscuro */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dark select,
+.dark textarea {
+  background-color: #261D1A !important;
+  color: #F7EFE2 !important;
+  border-color: #44342E !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #8E2A45 !important;
+  outline: none;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #8C786C !important;
+}
+
+/* Tablas y estados en Modo Oscuro */
+.dark table thead tr {
+  background-color: #281F1B !important;
+  border-color: #3F302B !important;
+}
+
+.dark table thead th {
+  color: #DFBE73 !important;
+}
+
+.dark tbody tr {
+  border-color: #332622 !important;
+}
+
+.dark tbody tr:hover td {
+  background-color: #281F1B !important;
+}
+
+/* Elementos auxiliares */
+.dark .bg-rosa-soft {
+  background-color: #351A22 !important;
+}
+
+

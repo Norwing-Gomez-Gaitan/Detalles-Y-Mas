@@ -90,7 +90,7 @@ export class AdminInventarioController {
   }
 
   /**
-   * Ajuste manual de inventario (merma, ajuste de conteo, consumo no registrado)
+   * Ajuste manual de inventario (merma, ajuste de conteo, consumo no registrado) con validación de existencia
    */
   static async ajustarInventario(req: Request, res: Response, next: NextFunction) {
     try {
@@ -101,16 +101,33 @@ export class AdminInventarioController {
         return res.status(400).json({ error: 'Tipo de movimiento no válido' });
       }
 
-      const cantNum = Number(cantidad);
+      let cantNum = Number(cantidad);
       if (isNaN(cantNum) || cantNum === 0) {
-        return res.status(400).json({ error: 'La cantidad debe ser diferente de 0' });
+        return res.status(400).json({ error: 'La cantidad debe ser un número diferente de 0' });
       }
 
-      // Actualizar material y registrar en movimientos
+      // Si es merma o consumo, el ajuste representa una salida (resta)
+      if ((tipo === 'merma' || tipo === 'consumo_produccion') && cantNum > 0) {
+        cantNum = -cantNum;
+      }
+
+      // Si es devolución a stock, representa una entrada (suma)
+      if (tipo === 'devolucion' && cantNum < 0) {
+        cantNum = Math.abs(cantNum);
+      }
+
+      // Obtener material y validar stock
       const material = await prisma.material.findUnique({ where: { id } });
       if (!material) return res.status(404).json({ error: 'Material no encontrado' });
 
-      const nuevoStock = Math.max(0, Number(material.stock_actual) + cantNum);
+      const stockActual = Number(material.stock_actual);
+      const nuevoStock = stockActual + cantNum;
+
+      if (nuevoStock < 0) {
+        return res.status(400).json({
+          error: `No es posible reducir más unidades de las disponibles. Stock actual: ${stockActual} ${material.unidad_medida}. Reducción solicitada: ${Math.abs(cantNum)}.`
+        });
+      }
 
       await prisma.$transaction([
         prisma.material.update({

@@ -176,6 +176,27 @@ export default function AdminProductosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!form.nombre || form.nombre.trim().length === 0) {
+      alert("Validación: El nombre del producto es obligatorio.");
+      return;
+    }
+    if (!form.codigo || form.codigo.trim().length === 0) {
+      alert("Validación: El código del producto es obligatorio.");
+      return;
+    }
+    if (form.precio_venta <= 0) {
+      alert("Validación: El precio de venta debe ser mayor a C$ 0.00.");
+      return;
+    }
+
+    if (costoRecetaCalculado > form.precio_venta && form.precio_venta > 0) {
+      const confirmar = confirm(
+        `Alerta de Rentabilidad: El costo total de materiales estimado (C$ ${costoRecetaCalculado.toFixed(2)}) supera el precio de venta (C$ ${form.precio_venta.toFixed(2)}). Esto generaría una pérdida por pieza. ¿Desea continuar y guardarlo de todas formas?`
+      );
+      if (!confirmar) return;
+    }
+
     try {
       setSubmitting(true);
       const endpoint = editId ? `/api/admin/productos/${editId}` : "/api/admin/productos";

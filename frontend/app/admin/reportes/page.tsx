@@ -29,7 +29,9 @@ export default function AdminReportesPage() {
 
   const handleDescargarCsv = (tipo: string) => {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    window.open(`${backendUrl}/api/admin/reportes/exportar-csv?tipo=${tipo}`, "_blank");
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
+    const url = `${backendUrl}/api/admin/reportes/exportar-csv?tipo=${tipo}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+    window.open(url, "_blank");
   };
 
   return (
