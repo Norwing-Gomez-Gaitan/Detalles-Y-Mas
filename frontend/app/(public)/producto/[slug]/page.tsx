@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 async function getProducto(slug: string) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").trim().replace(/\/+$/, '');
   try {
     const res = await fetch(`${backendUrl}/api/public/productos/${slug}`, {
       next: { revalidate: 300 },
@@ -26,7 +26,7 @@ async function getProducto(slug: string) {
 }
 
 async function getConfig() {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").trim().replace(/\/+$/, '');
   try {
     const res = await fetch(`${backendUrl}/api/public/configuracion`, {
       next: { revalidate: 300 },

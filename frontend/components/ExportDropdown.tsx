@@ -29,7 +29,7 @@ export function ExportDropdown({
 
   const handleDescargar = (formato: "xlsx" | "pdf" | "csv") => {
     setOpen(false);
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").trim().replace(/\/+$/, '');
     const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
     const url = `${backendUrl}/api/admin/reportes/exportar?tipo=${tipo}&formato=${formato}${
       token ? `&token=${encodeURIComponent(token)}` : ""

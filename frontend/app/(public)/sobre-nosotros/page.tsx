@@ -3,7 +3,7 @@ import { MessageCircle, MapPin, Clock, Heart, Sparkles, CheckCircle2 } from "luc
 import { getWhatsAppUrl, formatPhoneNumber } from "@/lib/utils";
 
 async function getConfig() {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").trim().replace(/\/+$/, '');
   try {
     const res = await fetch(`${backendUrl}/api/public/configuracion`, {
       cache: "no-store",

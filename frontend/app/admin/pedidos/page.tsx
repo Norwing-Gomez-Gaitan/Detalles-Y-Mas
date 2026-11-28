@@ -304,7 +304,7 @@ export default function AdminPedidosPage() {
   };
 
   const handleImprimir = (id: number) => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").trim().replace(/\/+$/, '');
     window.open(`${backendUrl}/api/admin/pedidos/${id}/imprimir`, "_blank");
   };
 

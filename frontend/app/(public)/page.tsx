@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 async function getHomeData() {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").trim().replace(/\/+$/, '');
   try {
     const [configRes, catsRes, destRes] = await Promise.all([
       fetch(`${backendUrl}/api/public/configuracion`, { cache: "no-store" }),
