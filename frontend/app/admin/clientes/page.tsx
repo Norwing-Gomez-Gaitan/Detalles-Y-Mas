@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Modal } from "@/components/Modal";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { formatCordoba, formatDate } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import {
@@ -175,13 +176,17 @@ export default function AdminClientesPage() {
             />
           </div>
 
-          <button
-            onClick={abrirModalCrear}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Cliente</span>
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <ExportDropdown tipo="clientes" label="Exportar Clientes" />
+
+            <button
+              onClick={abrirModalCrear}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Cliente</span>
+            </button>
+          </div>
         </div>
 
         {/* Tabla de Clientes */}

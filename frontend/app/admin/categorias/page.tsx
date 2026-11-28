@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Modal } from "@/components/Modal";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { apiFetch } from "@/lib/api";
 import { Layers, Plus, Edit, Loader2 } from "lucide-react";
 
@@ -72,13 +73,17 @@ export default function AdminCategoriasPage() {
           <p className="text-sm text-cacao">
             Organiza los productos en secciones temáticas para el sitio público.
           </p>
-          <button
-            onClick={abrirModalCrear}
-            className="flex items-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nueva Categoría</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <ExportDropdown tipo="categorias" label="Exportar Categorías" />
+
+            <button
+              onClick={abrirModalCrear}
+              className="flex items-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition-all text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Categoría</span>
+            </button>
+          </div>
         </div>
 
         <div className="bg-marfil rounded-artesanal border border-kraft/70 shadow-xs overflow-hidden">

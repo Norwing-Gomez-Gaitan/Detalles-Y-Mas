@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db.js';
+import * as ExportService from '../services/export.service.js';
 
 export class AdminReportesController {
   /**
@@ -95,53 +96,14 @@ export class AdminReportesController {
   }
 
   /**
-   * Exportación de reporte a archivo CSV con formato profesional y estructurado
+   * Exportación universal de datos en formatos profesionales: Excel (.xlsx), PDF y CSV
    */
-  static async exportarCsv(req: Request, res: Response, next: NextFunction) {
+  static async exportar(req: Request, res: Response, next: NextFunction) {
     try {
-      const tipo = req.query.tipo || 'pedidos';
-      const fechaActual = new Date();
-      const fechaStr = fechaActual.toLocaleDateString('es-NI', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-      const horaStr = fechaActual.toLocaleTimeString('es-NI', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
+      const tipo = String(req.query.tipo || 'pedidos').toLowerCase();
+      const formato = String(req.query.formato || (req.path.includes('csv') ? 'csv' : 'xlsx')).toLowerCase();
 
-      // Función auxiliar para escapar texto en celdas CSV
-      const esc = (val: any): string => {
-        if (val === null || val === undefined) return '""';
-        const str = String(val).replace(/"/g, '""').replace(/[\r\n]+/g, ' ');
-        return `"${str}"`;
-      };
-
-      // Formateador de moneda en Córdobas
-      const fmtCordoba = (num: number) => {
-        return `C$ ${Number(num || 0).toLocaleString('es-NI', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}`;
-      };
-
-      // Formateador de fecha DD/MM/AAAA
-      const fmtFecha = (dateVal: any) => {
-        if (!dateVal) return 'Sin fecha';
-        const d = new Date(dateVal);
-        if (isNaN(d.getTime())) return 'N/A';
-        return d.toLocaleDateString('es-NI', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-      };
-
-      // BOM UTF-8 para garantizar que Excel abra sin problemas de codificación de caracteres en español
-      let csv = '\uFEFF';
-
+      // ─── 1. PEDIDOS ──────────────────────────────────────────────────────────
       if (tipo === 'pedidos') {
         const pedidos = await prisma.pedido.findMany({
           include: {
@@ -156,210 +118,163 @@ export class AdminReportesController {
           orderBy: { fecha_pedido: 'desc' }
         });
 
-        // 1. Encabezado institucional del reporte
-        csv += `${esc('DETALLES Y MÁS - REPORTE DETALLADO DE PEDIDOS')}\n`;
-        csv += `${esc(`Fecha de emisión: ${fechaStr} a las ${horaStr}`)},${esc('Moneda: Córdobas (C$)')},${esc('Taller Artesanal - Nicaragua')}\n`;
-        csv += `${esc(`Total de pedidos exportados: ${pedidos.length}`)}\n`;
-        csv += '\n'; // Separador visual
-
-        // 2. Encabezados de columnas
-        csv += [
-          esc('N° PEDIDO'),
-          esc('CLIENTE'),
-          esc('WHATSAPP / TELÉFONO'),
-          esc('FECHA PEDIDO'),
-          esc('FECHA ENTREGA'),
-          esc('TIPO ENTREGA'),
-          esc('DIRECCIÓN ENTREGA'),
-          esc('ESTADO PEDIDO'),
-          esc('ESTADO DE PAGO'),
-          esc('SUBTOTAL (C$)'),
-          esc('ENVÍO (C$)'),
-          esc('DESCUENTO (C$)'),
-          esc('TOTAL GENERAL (C$)'),
-          esc('TOTAL PAGADO (C$)'),
-          esc('SALDO PENDIENTE (C$)'),
-          esc('PRODUCTOS / ARTÍCULOS'),
-          esc('NOTAS / OBSERVACIONES')
-        ].join(',') + '\n';
-
-        let acumTotal = 0;
-        let acumPagado = 0;
-        let acumSaldo = 0;
-
-        const estadoMap: Record<string, string> = {
-          cotizacion: 'Cotización',
-          confirmado: 'Confirmado',
-          en_produccion: 'En Producción',
-          listo: 'Listo para Entrega',
-          entregado: 'Entregado',
-          cancelado: 'Cancelado'
-        };
-
-        const tipoEntregaMap: Record<string, string> = {
-          retiro_local: 'Retiro en Taller',
-          envio_domicilio: 'Envío a Domicilio'
-        };
-
-        // 3. Filas de datos
-        for (const p of pedidos) {
-          const total = Number(p.total);
-          const pagado = p.pagos.reduce((s, pg) => s + Number(pg.monto), 0);
-          const saldo = Math.max(0, total - pagado);
-          const subtotal = p.detalles.reduce((s, d) => s + (Number(d.subtotal) || (Number(d.cantidad) * Number(d.precio_unitario))), 0);
-
-          acumTotal += total;
-          acumPagado += pagado;
-          acumSaldo += saldo;
-
-          let estadoPago = 'PENDIENTE';
-          if (saldo <= 0.01) {
-            estadoPago = 'PAGADO COMPLETO';
-          } else if (pagado > 0) {
-            estadoPago = 'ABONO PARCIAL';
-          }
-
-          const productosStr = p.detalles
-            .map(d => `${d.cantidad}x ${d.producto?.nombre || 'Personalizado'}`)
-            .join(' | ');
-
-          const telefono = p.cliente.whatsapp || p.cliente.telefono || 'Sin registrar';
-
-          csv += [
-            esc(`#${String(p.id).padStart(4, '0')}`),
-            esc(p.cliente.nombre),
-            esc(telefono),
-            esc(fmtFecha(p.fecha_pedido)),
-            esc(fmtFecha(p.fecha_entrega)),
-            esc(tipoEntregaMap[p.tipo_entrega] || p.tipo_entrega),
-            esc(p.direccion_entrega || 'N/A'),
-            esc(estadoMap[p.estado] || p.estado),
-            esc(estadoPago),
-            esc(fmtCordoba(subtotal)),
-            esc(fmtCordoba(Number(p.costo_envio))),
-            esc(fmtCordoba(Number(p.descuento))),
-            esc(fmtCordoba(total)),
-            esc(fmtCordoba(pagado)),
-            esc(fmtCordoba(saldo)),
-            esc(productosStr || 'Sin ítems'),
-            esc(p.notas || '')
-          ].join(',') + '\n';
-        }
-
-        // 4. Fila resumen con totales acumulados
-        csv += '\n';
-        csv += [
-          esc(''),
-          esc('TOTALES CONSOLIDADOS:'),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(fmtCordoba(acumTotal)),
-          esc(fmtCordoba(acumPagado)),
-          esc(fmtCordoba(acumSaldo)),
-          esc(''),
-          esc('')
-        ].join(',') + '\n';
-
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="Reporte_Pedidos_DetallesYMas_${fechaActual.toISOString().slice(0, 10)}.csv"`);
-        return res.send(csv);
+        if (formato === 'pdf') return ExportService.exportarPedidosPdf(pedidos, res);
+        if (formato === 'csv') return ExportService.exportarPedidosCsv(pedidos, res);
+        return await ExportService.exportarPedidosXlsx(pedidos, res);
       }
 
-      if (tipo === 'materiales') {
+      // ─── 2. MATERIALES / INVENTARIO ──────────────────────────────────────────
+      if (tipo === 'materiales' || tipo === 'inventario') {
         const mats = await prisma.material.findMany({
           include: { proveedor: { select: { nombre: true, telefono: true } } },
           orderBy: { nombre: 'asc' }
         });
 
-        const enAlerta = mats.filter(m => Number(m.stock_actual) <= Number(m.stock_minimo)).length;
-
-        // 1. Encabezado institucional del reporte de inventario
-        csv += `${esc('DETALLES Y MÁS - REPORTE DE INVENTARIO Y MATERIALES')}\n`;
-        csv += `${esc(`Fecha de emisión: ${fechaStr} a las ${horaStr}`)},${esc('Moneda: Córdobas (C$)')},${esc('Taller Artesanal - Nicaragua')}\n`;
-        csv += `${esc(`Total de materiales: ${mats.length}`)},${esc(`Materiales en alerta de stock: ${enAlerta}`)}\n`;
-        csv += '\n';
-
-        // 2. Encabezados de columnas
-        csv += [
-          esc('ID'),
-          esc('MATERIAL'),
-          esc('UNIDAD DE MEDIDA'),
-          esc('STOCK ACTUAL'),
-          esc('STOCK MÍNIMO'),
-          esc('DIFERENCIA / FALTANTE'),
-          esc('COSTO UNITARIO (C$)'),
-          esc('VALOR TOTAL EN STOCK (C$)'),
-          esc('PROVEEDOR PRINCIPAL'),
-          esc('ESTADO DE STOCK'),
-          esc('ESTADO EN SISTEMA')
-        ].join(',') + '\n';
-
-        let acumValorTotal = 0;
-        let acumUnidadesTotales = 0;
-
-        // 3. Filas de materiales
-        for (const m of mats) {
-          const actual = Number(m.stock_actual);
-          const min = Number(m.stock_minimo);
-          const costo = Number(m.costo_unitario);
-          const valorFila = actual * costo;
-          const diferencia = actual - min;
-
-          acumValorTotal += valorFila;
-          acumUnidadesTotales += actual;
-
-          const esBajo = actual <= min;
-          const estadoStock = esBajo ? 'ALERTA: REPONER URGENTE' : 'STOCK ÓPTIMO';
-          const diferenciaStr = esBajo ? `FALTAN ${Math.abs(diferencia).toFixed(2)}` : `SOBRAN +${diferencia.toFixed(2)}`;
-
-          csv += [
-            esc(`#${String(m.id).padStart(3, '0')}`),
-            esc(m.nombre),
-            esc(m.unidad_medida),
-            esc(actual.toLocaleString('es-NI', { minimumFractionDigits: 0, maximumFractionDigits: 2 })),
-            esc(min.toLocaleString('es-NI', { minimumFractionDigits: 0, maximumFractionDigits: 2 })),
-            esc(diferenciaStr),
-            esc(fmtCordoba(costo)),
-            esc(fmtCordoba(valorFila)),
-            esc(m.proveedor?.nombre || 'Sin Proveedor Asignado'),
-            esc(estadoStock),
-            esc(m.activo ? 'Activo' : 'Inactivo')
-          ].join(',') + '\n';
-        }
-
-        // 4. Fila resumen con valorización de inventario
-        csv += '\n';
-        csv += [
-          esc(''),
-          esc('TOTALES DE INVENTARIO:'),
-          esc(''),
-          esc(acumUnidadesTotales.toLocaleString('es-NI', { minimumFractionDigits: 0, maximumFractionDigits: 2 })),
-          esc(''),
-          esc(''),
-          esc(''),
-          esc(fmtCordoba(acumValorTotal)),
-          esc(''),
-          esc(`Alertas: ${enAlerta} materiales`),
-          esc('')
-        ].join(',') + '\n';
-
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="Inventario_Materiales_DetallesYMas_${fechaActual.toISOString().slice(0, 10)}.csv"`);
-        return res.send(csv);
+        if (formato === 'pdf') return ExportService.exportarMaterialesPdf(mats, res);
+        if (formato === 'csv') return ExportService.exportarMaterialesCsv(mats, res);
+        return await ExportService.exportarMaterialesXlsx(mats, res);
       }
 
-      return res.status(400).json({ error: 'Tipo de exportación no soportado' });
+      // ─── 3. PRODUCTOS ────────────────────────────────────────────────────────
+      if (tipo === 'productos') {
+        const prods = await prisma.producto.findMany({
+          include: {
+            categoria: { select: { nombre: true } },
+            materiales: {
+              include: {
+                material: { select: { costo_unitario: true } }
+              }
+            }
+          },
+          orderBy: { id: 'desc' }
+        });
+
+        const productosEnriquecidos = prods.map(p => {
+          let costoMateriales = 0;
+          for (const item of p.materiales) {
+            costoMateriales += Number(item.cantidad) * Number(item.material.costo_unitario);
+          }
+          const precioVenta = Number(p.precio_venta);
+          const gananciaEstimada = precioVenta - costoMateriales;
+          const margenPct = precioVenta > 0 ? ((gananciaEstimada / precioVenta) * 100).toFixed(1) : 0;
+          return {
+            ...p,
+            costo_materiales: Number(costoMateriales.toFixed(2)),
+            ganancia_estimada: Number(gananciaEstimada.toFixed(2)),
+            margen_pct: Number(margenPct)
+          };
+        });
+
+        if (formato === 'pdf') return ExportService.exportarProductosPdf(productosEnriquecidos, res);
+        if (formato === 'csv') return ExportService.exportarProductosCsv(productosEnriquecidos, res);
+        return await ExportService.exportarProductosXlsx(productosEnriquecidos, res);
+      }
+
+      // ─── 4. CATEGORÍAS ───────────────────────────────────────────────────────
+      if (tipo === 'categorias') {
+        const categorias = await prisma.categoria.findMany({
+          include: {
+            _count: { select: { productos: true } }
+          },
+          orderBy: { nombre: 'asc' }
+        });
+
+        if (formato === 'pdf') return ExportService.exportarCategoriasPdf(categorias, res);
+        if (formato === 'csv') return ExportService.exportarCategoriasCsv(categorias, res);
+        return await ExportService.exportarCategoriasXlsx(categorias, res);
+      }
+
+      // ─── 5. CLIENTES ─────────────────────────────────────────────────────────
+      if (tipo === 'clientes') {
+        const clientes = await prisma.cliente.findMany({
+          include: {
+            pedidos: {
+              where: { estado: { not: 'cancelado' } },
+              select: { total: true }
+            },
+            _count: { select: { pedidos: true } }
+          },
+          orderBy: { nombre: 'asc' }
+        });
+
+        if (formato === 'pdf') return ExportService.exportarClientesPdf(clientes, res);
+        if (formato === 'csv') return ExportService.exportarClientesCsv(clientes, res);
+        return await ExportService.exportarClientesXlsx(clientes, res);
+      }
+
+      // ─── 6. GASTOS ───────────────────────────────────────────────────────────
+      if (tipo === 'gastos') {
+        const gastos = await prisma.gasto.findMany({
+          include: {
+            pedido: { select: { id: true, total: true, cliente: { select: { nombre: true } } } }
+          },
+          orderBy: { fecha: 'desc' }
+        });
+
+        if (formato === 'pdf') return ExportService.exportarGastosPdf(gastos, res);
+        if (formato === 'csv') return ExportService.exportarGastosCsv(gastos, res);
+        return await ExportService.exportarGastosXlsx(gastos, res);
+      }
+
+      // ─── 7. COMPRAS ──────────────────────────────────────────────────────────
+      if (tipo === 'compras') {
+        const compras = await prisma.compra.findMany({
+          include: {
+            proveedor: { select: { nombre: true } },
+            detalles: {
+              include: {
+                material: { select: { nombre: true } }
+              }
+            }
+          },
+          orderBy: { fecha: 'desc' }
+        });
+
+        if (formato === 'pdf') return ExportService.exportarComprasPdf(compras, res);
+        if (formato === 'csv') return ExportService.exportarComprasCsv(compras, res);
+        return await ExportService.exportarComprasXlsx(compras, res);
+      }
+
+      // ─── 8. PROVEEDORES ──────────────────────────────────────────────────────
+      if (tipo === 'proveedores') {
+        const proveedores = await prisma.proveedor.findMany({
+          include: {
+            _count: { select: { materiales: true, compras: true } }
+          },
+          orderBy: { nombre: 'asc' }
+        });
+
+        if (formato === 'pdf') return ExportService.exportarProveedoresPdf(proveedores, res);
+        if (formato === 'csv') return ExportService.exportarProveedoresCsv(proveedores, res);
+        return await ExportService.exportarProveedoresXlsx(proveedores, res);
+      }
+
+      // ─── 9. MOVIMIENTOS DE INVENTARIO (KARDEX) ───────────────────────────────
+      if (tipo === 'movimientos') {
+        const movimientos = await prisma.movimientoInventario.findMany({
+          include: {
+            material: { select: { nombre: true, unidad_medida: true } }
+          },
+          orderBy: { fecha: 'desc' }
+        });
+
+        if (formato === 'pdf') return ExportService.exportarMovimientosPdf(movimientos, res);
+        if (formato === 'csv') return ExportService.exportarMovimientosCsv(movimientos, res);
+        return await ExportService.exportarMovimientosXlsx(movimientos, res);
+      }
+
+      return res.status(400).json({ error: `Tipo de exportación '${tipo}' no soportado.` });
     } catch (error) {
       return next(error);
     }
+  }
+
+  /**
+   * Retrocompatibilidad con la ruta anterior /reportes/exportar-csv
+   */
+  static async exportarCsv(req: Request, res: Response, next: NextFunction) {
+    req.query.formato = 'csv';
+    return AdminReportesController.exportar(req, res, next);
   }
 }
 

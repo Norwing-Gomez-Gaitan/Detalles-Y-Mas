@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Modal } from "@/components/Modal";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { formatCordoba, formatDate } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { Receipt, Plus, Trash2, Loader2, DollarSign } from "lucide-react";
@@ -113,13 +114,17 @@ export default function AdminGastosPage() {
             </span>
           </div>
 
-          <button
-            onClick={abrirModal}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Registrar Gasto</span>
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <ExportDropdown tipo="gastos" label="Exportar Gastos" />
+
+            <button
+              onClick={abrirModal}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Registrar Gasto</span>
+            </button>
+          </div>
         </div>
 
         <div className="bg-marfil rounded-artesanal border border-kraft/70 shadow-xs overflow-hidden">

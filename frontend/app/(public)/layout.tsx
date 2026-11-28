@@ -6,7 +6,6 @@ async function getConfig() {
   try {
     const res = await fetch(`${backendUrl}/api/public/configuracion`, {
       cache: "no-store",
-      next: { revalidate: 0 },
     });
     if (!res.ok) throw new Error();
     return res.json();

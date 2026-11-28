@@ -5,6 +5,7 @@ import { AdminHeader } from "@/components/AdminHeader";
 import { Badge } from "@/components/Badge";
 import { Modal } from "@/components/Modal";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { formatCordoba, formatDate } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import {
@@ -219,6 +220,23 @@ export default function AdminPedidosPage() {
   };
 
   const handleCambiarEstado = async (id: number, nuevoEstado: string) => {
+    // Regla del negocio: validar 50% de adelanto antes de iniciar producción o entregar
+    const pedObj = pedidos.find((p) => p.id === id);
+    if (pedObj && ["en_produccion", "listo", "entregado"].includes(nuevoEstado)) {
+      const pagado = Number(pedObj.total_pagado || 0);
+      const adelantoMinimo50 = Number(pedObj.total || 0) * 0.5;
+      if (pagado < adelantoMinimo50 - 0.01) {
+        const confirmar = confirm(
+          `⚠️ Regla del negocio: Se requiere un adelanto mínimo del 50% (${formatCordoba(
+            adelantoMinimo50
+          )}) para pasar el pedido a "${nuevoEstado.toUpperCase()}".\n\nActualmente solo se ha pagado ${formatCordoba(
+            pagado
+          )} de un total de ${formatCordoba(pedObj.total)}.\n\n¿Desea continuar de todas formas?`
+        );
+        if (!confirmar) return;
+      }
+    }
+
     try {
       await apiFetch(`/api/admin/pedidos/${id}/estado`, {
         method: "PATCH",
@@ -232,10 +250,19 @@ export default function AdminPedidosPage() {
 
   const abrirModalPago = (ped: any) => {
     setPedidoParaPago(ped);
+    const total = Number(ped.total || 0);
+    const pagado = Number(ped.total_pagado || 0);
+    const saldo = Number(ped.saldo_pendiente || 0);
+    const adelanto50 = Math.ceil(total * 0.5);
+    const faltaPara50 = Math.max(0, adelanto50 - pagado);
+
+    // Sugerir completar el 50% si aún no lo tiene, o el saldo total
+    const montoSugerido = faltaPara50 > 0 ? Math.min(saldo, faltaPara50) : saldo;
+
     setFormPago({
-      monto: ped.saldo_pendiente > 0 ? ped.saldo_pendiente : 0,
+      monto: montoSugerido > 0 ? montoSugerido : 0,
       metodo: "transferencia",
-      es_anticipo: ped.total_pagado === 0,
+      es_anticipo: pagado < adelanto50,
       referencia: `TR-${Math.floor(100000 + Math.random() * 900000)}`,
       notas: "",
     });
@@ -354,22 +381,11 @@ export default function AdminPedidosPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-                const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
-                window.open(`${backendUrl}/api/admin/reportes/exportar-csv?tipo=pedidos${token ? `&token=${encodeURIComponent(token)}` : ""}`, "_blank");
-              }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-marfil hover:bg-crema border border-kraft text-chocolate font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-2xs"
-              title="Descargar listado completo de pedidos en formato CSV estructurado para Excel"
-            >
-              <Download className="w-4 h-4 text-dorado" />
-              <span>Exportar Pedidos (CSV)</span>
-            </button>
+            <ExportDropdown tipo="pedidos" label="Exportar Pedidos" />
 
             <button
               onClick={abrirModalCrearPedido}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Crear Pedido</span>
@@ -711,6 +727,9 @@ export default function AdminPedidosPage() {
                 <strong className="text-xl font-serif text-borgona">
                   {formatCordoba(totalPedidoCalculado)}
                 </strong>
+                <span className="text-[11px] font-bold text-dorado mt-0.5">
+                  Adelanto 50% para iniciar: {formatCordoba(totalPedidoCalculado * 0.5)}
+                </span>
               </div>
             </div>
           </div>
@@ -754,23 +773,76 @@ export default function AdminPedidosPage() {
         title={`Registrar Pago: Pedido #${pedidoParaPago?.id}`}
       >
         <form onSubmit={handleRegistrarPago} className="space-y-4">
-          <div className="bg-crema/50 p-3 rounded-lg border border-kraft/60 flex items-center justify-between text-xs">
+          {/* Tarjeta Informativa de Estado de Cuenta */}
+          <div className="bg-crema/50 dark:bg-artesanoDark-card p-3 rounded-lg border border-kraft/60 dark:border-artesanoDark-border flex items-center justify-between text-xs">
             <div>
-              <span className="text-cacao block">Cliente:</span>
-              <strong className="text-chocolate">{pedidoParaPago?.cliente?.nombre}</strong>
+              <span className="text-cacao dark:text-artesanoDark-muted block">Cliente:</span>
+              <strong className="text-chocolate dark:text-artesanoDark-text">{pedidoParaPago?.cliente?.nombre}</strong>
             </div>
             <div className="text-right">
-              <span className="text-cacao block">Saldo Pendiente:</span>
+              <span className="text-cacao dark:text-artesanoDark-muted block">Saldo Pendiente:</span>
               <strong className="text-estado-error font-serif text-sm">
                 {formatCordoba(pedidoParaPago?.saldo_pendiente)}
               </strong>
             </div>
           </div>
 
+          {/* Banner de Regla de Negocio: 50% de Adelanto */}
+          {pedidoParaPago && (
+            <div className="bg-dorado/10 border border-dorado/30 rounded-lg p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <span className="font-bold text-chocolate dark:text-artesanoDark-text block flex items-center gap-1.5">
+                  📌 Regla del Negocio: Adelanto del 50%
+                </span>
+                <p className="text-cacao dark:text-artesanoDark-muted">
+                  Total Pedido: <strong>{formatCordoba(pedidoParaPago.total)}</strong> | Mínimo 50%: <strong>{formatCordoba(Number(pedidoParaPago.total) * 0.5)}</strong>
+                </p>
+              </div>
+              <div className="shrink-0 text-left sm:text-right">
+                {Number(pedidoParaPago.total_pagado || 0) >= Number(pedidoParaPago.total || 0) * 0.5 ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-estado-exito bg-estado-exito/15 px-2.5 py-1 rounded-full border border-estado-exito/30">
+                    ✓ 50% Cubierto ({formatCordoba(pedidoParaPago.total_pagado)})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-estado-aviso bg-estado-aviso/15 px-2.5 py-1 rounded-full border border-estado-aviso/30">
+                    Falta adelanto: {formatCordoba(Math.max(0, (Number(pedidoParaPago.total) * 0.5) - Number(pedidoParaPago.total_pagado || 0)))}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-xs font-bold text-chocolate uppercase mb-1">
-              Monto del Pago (C$) *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-chocolate uppercase">
+                Monto del Pago (C$) *
+              </label>
+              {pedidoParaPago && (
+                <div className="flex gap-1.5">
+                  {Number(pedidoParaPago.total_pagado || 0) < Number(pedidoParaPago.total || 0) * 0.5 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const falta50 = Math.max(0, (Number(pedidoParaPago.total) * 0.5) - Number(pedidoParaPago.total_pagado || 0));
+                        setFormPago({ ...formPago, monto: Math.min(Number(pedidoParaPago.saldo_pendiente), falta50), es_anticipo: true });
+                      }}
+                      className="text-[11px] font-semibold text-dorado-dark bg-dorado/20 hover:bg-dorado/30 px-2 py-0.5 rounded border border-dorado/40 transition-colors"
+                    >
+                      50% Adelanto
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormPago({ ...formPago, monto: Number(pedidoParaPago.saldo_pendiente || 0), es_anticipo: false });
+                    }}
+                    className="text-[11px] font-semibold text-borgona bg-borgona/10 hover:bg-borgona/20 px-2 py-0.5 rounded border border-borgona/30 transition-colors"
+                  >
+                    100% Saldo Total
+                  </button>
+                </div>
+              )}
+            </div>
             <input
               type="number"
               step="0.01"

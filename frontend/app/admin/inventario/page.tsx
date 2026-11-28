@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Modal } from "@/components/Modal";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { formatCordoba } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import {
@@ -226,22 +227,11 @@ export default function AdminInventarioPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-                const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
-                window.open(`${backendUrl}/api/admin/reportes/exportar-csv?tipo=materiales${token ? `&token=${encodeURIComponent(token)}` : ""}`, "_blank");
-              }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-marfil hover:bg-crema border border-kraft text-chocolate font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-2xs"
-              title="Descargar reporte consolidado de inventario en formato CSV estructurado para Excel"
-            >
-              <Download className="w-4 h-4 text-dorado" />
-              <span>Exportar Inventario (CSV)</span>
-            </button>
+            <ExportDropdown tipo="materiales" label="Exportar Inventario" />
 
             <button
               onClick={abrirModalCrear}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm text-sm"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-borgona hover:bg-borgona-dark text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Nuevo Material</span>

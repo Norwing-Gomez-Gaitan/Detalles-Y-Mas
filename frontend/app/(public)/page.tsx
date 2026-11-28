@@ -16,19 +16,41 @@ async function getHomeData() {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   try {
     const [configRes, catsRes, destRes] = await Promise.all([
-      fetch(`${backendUrl}/api/public/configuracion`, { cache: "no-store", next: { revalidate: 0 } }),
-      fetch(`${backendUrl}/api/public/categorias`, { cache: "no-store", next: { revalidate: 0 } }),
-      fetch(`${backendUrl}/api/public/destacados`, { cache: "no-store", next: { revalidate: 0 } }),
+      fetch(`${backendUrl}/api/public/configuracion`, { cache: "no-store" }),
+      fetch(`${backendUrl}/api/public/categorias`, { cache: "no-store" }),
+      fetch(`${backendUrl}/api/public/destacados`, { cache: "no-store" }),
     ]);
 
     const config = configRes.ok ? await configRes.json() : null;
     const categorias = catsRes.ok ? await catsRes.json() : [];
     const destacados = destRes.ok ? await destRes.json() : [];
 
-    return { config, categorias, destacados };
+    return {
+      config: config || {
+        nombre: "Detalles y Más",
+        lema: "Hecho con amor para cada ocasión",
+        whatsapp: "8485-6722",
+        telefono: "8485-6722",
+        direccion_cobertura: "Km8 carretera norte entrada Rocargo 4c al Norte 2 abajo media al sur",
+        horario: "Lunes a Sábado: 8:00 AM - 6:00 PM",
+      },
+      categorias,
+      destacados,
+    };
   } catch (error) {
-    console.error("Error al obtener datos públicos de inicio:", error);
-    return { config: null, categorias: [], destacados: [] };
+    // Si el servidor backend local está iniciando o no responde, usar valores seguros por defecto
+    return {
+      config: {
+        nombre: "Detalles y Más",
+        lema: "Hecho con amor para cada ocasión",
+        whatsapp: "8485-6722",
+        telefono: "8485-6722",
+        direccion_cobertura: "Km8 carretera norte entrada Rocargo 4c al Norte 2 abajo media al sur",
+        horario: "Lunes a Sábado: 8:00 AM - 6:00 PM",
+      },
+      categorias: [],
+      destacados: [],
+    };
   }
 }
 

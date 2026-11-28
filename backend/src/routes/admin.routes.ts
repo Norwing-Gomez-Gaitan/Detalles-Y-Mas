@@ -128,9 +128,10 @@ router.post('/gastos', AdminGastosController.createGasto);
 router.delete('/gastos/:id', AdminGastosController.deleteGasto);
 
 // ==========================================
-// REPORTES Y CSV
+// REPORTES Y EXPORTACIÓN (EXCEL, PDF, CSV)
 // ==========================================
 router.get('/reportes', AdminReportesController.getReportes);
+router.get('/reportes/exportar', AdminReportesController.exportar);
 router.get('/reportes/exportar-csv', AdminReportesController.exportarCsv);
 
 // ==========================================

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Modal } from "@/components/Modal";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { formatCordoba, formatDate } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { Truck, Plus, Trash2, X, Loader2, FileText } from "lucide-react";
@@ -162,7 +163,10 @@ export default function AdminComprasPage() {
           <p className="text-sm text-cacao">
             Al registrar una compra, el inventario y el costo unitario se actualizan automáticamente en el sistema.
           </p>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <ExportDropdown tipo="compras" label="Exportar Compras" />
+            <ExportDropdown tipo="proveedores" label="Exportar Proveedores" />
+
             <button
               onClick={() => setModalProvOpen(true)}
               className="flex items-center gap-1.5 bg-marfil border border-kraft hover:bg-crema px-3.5 py-2 rounded-lg text-sm font-semibold text-chocolate transition-colors"

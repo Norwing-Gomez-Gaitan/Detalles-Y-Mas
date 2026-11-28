@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AdminHeader } from "@/components/AdminHeader";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { formatCordoba } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import {
   BarChart3,
-  Download,
   Calendar,
   TrendingUp,
   DollarSign,
@@ -27,38 +27,21 @@ export default function AdminReportesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDescargarCsv = (tipo: string) => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : "";
-    const url = `${backendUrl}/api/admin/reportes/exportar-csv?tipo=${tipo}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
-    window.open(url, "_blank");
-  };
-
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
       <AdminHeader title="Reportes y Métricas Financieras" />
 
       <div className="p-8 space-y-8 max-w-7xl">
-        {/* Encabezado con Botones de Exportar CSV */}
+        {/* Encabezado con Botones de Exportar Oficiales (Excel, PDF, CSV) */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-cacao">
             Monitorea el rendimiento mensual de ventas, productos estrella y distribución de gastos.
           </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleDescargarCsv("pedidos")}
-              className="flex items-center gap-2 bg-marfil hover:bg-crema border border-kraft text-chocolate font-semibold px-4 py-2 rounded-lg text-xs transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5 text-dorado" />
-              <span>Exportar Pedidos (CSV)</span>
-            </button>
-            <button
-              onClick={() => handleDescargarCsv("materiales")}
-              className="flex items-center gap-2 bg-marfil hover:bg-crema border border-kraft text-chocolate font-semibold px-4 py-2 rounded-lg text-xs transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5 text-dorado" />
-              <span>Exportar Inventario (CSV)</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <ExportDropdown tipo="pedidos" label="Exportar Pedidos" />
+            <ExportDropdown tipo="materiales" label="Exportar Inventario" />
+            <ExportDropdown tipo="gastos" label="Exportar Gastos" />
+            <ExportDropdown tipo="clientes" label="Exportar Clientes" />
           </div>
         </div>
 

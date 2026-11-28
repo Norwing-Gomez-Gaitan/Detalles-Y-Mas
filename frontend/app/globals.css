@@ -36,6 +36,18 @@ button, input, select, textarea {
   min-height: 44px;
 }
 
+/* Quitar flechas de incremento y decremento en inputs numéricos en todos los navegadores */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
 /* Scrollbar personalizado cálido */
 ::-webkit-scrollbar {
   width: 8px;
