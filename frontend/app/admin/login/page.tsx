@@ -107,7 +107,11 @@ export default function LoginPage() {
         if (res.devCode) {
           setDevCode(res.devCode);
           setCode(res.devCode);
-          setMensaje(`Código de prueba generado: ${res.devCode} (autocompletado). También puedes verlo en la consola del backend.`);
+          if (res.smtpBlocked) {
+            setMensaje(`El servidor no puede enviar correos (SMTP bloqueado por el hosting). Tu código es: ${res.devCode} — ya fue autocompletado abajo.`);
+          } else {
+            setMensaje(`Código de prueba generado: ${res.devCode} (autocompletado). También puedes verlo en la consola del backend.`);
+          }
         } else {
           setMensaje(`Te hemos enviado un código de confirmación a ${res.email || email}. Revisa tu bandeja de entrada o spam.`);
         }
@@ -164,7 +168,11 @@ export default function LoginPage() {
       if (res.devCode) {
         setDevCode(res.devCode);
         setCode(res.devCode);
-        setMensaje(`Nuevo código de prueba generado: ${res.devCode} (autocompletado).`);
+        if (res.smtpBlocked) {
+          setMensaje(`SMTP bloqueado por el servidor. Código generado: ${res.devCode} (autocompletado).`);
+        } else {
+          setMensaje(`Nuevo código de prueba generado: ${res.devCode} (autocompletado).`);
+        }
       } else {
         setMensaje(res.mensaje || "Se ha enviado un nuevo código a tu correo.");
       }
@@ -341,10 +349,11 @@ export default function LoginPage() {
             {devCode && (
               <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900 space-y-1">
                 <div className="font-bold flex items-center gap-1 text-borgona">
-                  <span>💡 Código de prueba: {devCode}</span>
+                  <span>🔑 Código de acceso: <span className="font-mono tracking-widest text-sm">{devCode}</span></span>
                 </div>
                 <p className="text-[11px] text-cacao leading-relaxed">
-                  (SMTP no configurado en backend/.env. Puedes usar este código directamente para ingresar. Para recibir correos reales en tu Gmail, configura tu Contraseña de Aplicación en backend/.env).
+                  El hosting gratuito bloquea el envío de correos por SMTP. El código fue generado y autocompletado — solo pulsa <strong>Entrar al Dashboard</strong>.
+                  Para recibir correos reales, migra el backend a un hosting que permita SMTP o usa un servicio de email vía API (ej. Resend).
                 </p>
               </div>
             )}

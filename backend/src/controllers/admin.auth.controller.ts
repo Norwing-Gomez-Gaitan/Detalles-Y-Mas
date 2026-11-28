@@ -35,12 +35,12 @@ export class AdminAuthController {
         console.warn('🛡️ [FALLBACK ACTIVO]: Autenticando con usuario administrador configurado...\n');
 
         // Fallback de desarrollo para que el usuario pueda ingresar de inmediato sin trabarse
-        if (emailLower === 'left4deadchele@gmail.com') {
+        if (emailLower === 'left4deadchele@gmail.com' || emailLower === 'gomeznorwing888@gmail.com') {
           const passHash = await bcrypt.hash('Hola1212', 10);
           user = {
             id: 1,
             nombre: 'Administrador Principal',
-            email: 'left4deadchele@gmail.com',
+            email: emailLower,
             password_hash: passHash,
             activo: true,
           };
@@ -73,19 +73,24 @@ export class AdminAuthController {
 
       verificationCodes.set(emailLower, { code, expiresAt });
 
-      // Enviar código por correo electrónico (o consola si SMTP está vacío)
-      await EmailService.sendVerificationCode(user.email, code, user.nombre);
+      // Enviar código por correo electrónico (Resend API o SMTP)
+      const emailResult = await EmailService.sendVerificationCode(user.email, code, user.nombre);
 
-      const hasSmtp = Boolean(ENV.SMTP_HOST && ENV.SMTP_USER && ENV.SMTP_PASS);
+      const hasEmailService = Boolean(ENV.RESEND_API_KEY || (ENV.SMTP_HOST && ENV.SMTP_USER && ENV.SMTP_PASS));
+      // Si el correo se envió con éxito, no mostramos el devCode en la respuesta para máxima seguridad
+      const showDevCode = !hasEmailService || !emailResult.sent;
 
       return res.json({
         require2FA: true,
         email: user.email,
-        hasSmtp,
-        devCode: !hasSmtp ? code : undefined,
-        mensaje: hasSmtp
+        hasSmtp: hasEmailService,
+        smtpBlocked: emailResult.networkBlocked || false,
+        devCode: showDevCode ? code : undefined,
+        mensaje: emailResult.sent
           ? `Se ha enviado un código de confirmación a tu correo (${user.email}).`
-          : `Código generado. Al no haber SMTP configurado, revisa la consola o usa el código de desarrollo.`
+          : emailResult.networkBlocked
+          ? `El servidor bloqueó el puerto SMTP. Usa el código generado abajo:`
+          : `Código generado. Ingresa con el código de confirmación abajo.`
       });
     } catch (error) {
       return next(error);
@@ -106,11 +111,11 @@ export class AdminAuthController {
           where: { email: emailLower }
         });
       } catch {
-        if (emailLower === 'left4deadchele@gmail.com') {
+        if (emailLower === 'left4deadchele@gmail.com' || emailLower === 'gomeznorwing888@gmail.com') {
           user = {
             id: 1,
             nombre: 'Administrador Principal',
-            email: 'left4deadchele@gmail.com',
+            email: emailLower,
             activo: true,
           };
         } else if (emailLower === 'admin@detallesymas.ni') {
@@ -190,11 +195,11 @@ export class AdminAuthController {
           where: { email: emailLower }
         });
       } catch {
-        if (emailLower === 'left4deadchele@gmail.com') {
+        if (emailLower === 'left4deadchele@gmail.com' || emailLower === 'gomeznorwing888@gmail.com') {
           user = {
             id: 1,
             nombre: 'Administrador Principal',
-            email: 'left4deadchele@gmail.com',
+            email: emailLower,
             activo: true,
           };
         } else if (emailLower === 'admin@detallesymas.ni') {
@@ -215,16 +220,18 @@ export class AdminAuthController {
       const expiresAt = Date.now() + 15 * 60 * 1000;
 
       verificationCodes.set(emailLower, { code, expiresAt });
-      await EmailService.sendVerificationCode(user.email, code, user.nombre);
+      const emailResult = await EmailService.sendVerificationCode(user.email, code, user.nombre);
 
-      const hasSmtp = Boolean(ENV.SMTP_HOST && ENV.SMTP_USER && ENV.SMTP_PASS);
+      const hasEmailService = Boolean(ENV.RESEND_API_KEY || (ENV.SMTP_HOST && ENV.SMTP_USER && ENV.SMTP_PASS));
+      const showDevCode = !hasEmailService || !emailResult.sent;
 
       return res.json({
-        mensaje: hasSmtp
+        mensaje: emailResult.sent
           ? `Nuevo código enviado a ${user.email}`
-          : `Nuevo código generado en consola (SMTP no configurado).`,
-        hasSmtp,
-        devCode: !hasSmtp ? code : undefined
+          : `No se pudo enviar el correo. Usa el código generado abajo:`,
+        hasSmtp: hasEmailService,
+        smtpBlocked: emailResult.networkBlocked || false,
+        devCode: showDevCode ? code : undefined
       });
     } catch (error) {
       return next(error);

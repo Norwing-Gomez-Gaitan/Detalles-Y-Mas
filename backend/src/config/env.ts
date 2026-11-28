@@ -12,7 +12,9 @@ export const ENV = {
   SUPABASE_URL: process.env.SUPABASE_URL || '',
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   SUPABASE_BUCKET: process.env.SUPABASE_BUCKET || 'productos',
-  // Configuración SMTP para envío de correos de confirmación
+  // Configuración de Email (Resend HTTP API o SMTP)
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  RESEND_FROM: process.env.RESEND_FROM || 'Detalles y Más <onboarding@resend.dev>',
   SMTP_HOST: process.env.SMTP_HOST || '',
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
   SMTP_USER: process.env.SMTP_USER || '',

@@ -26,7 +26,7 @@ export class EmailService {
   /**
    * Envía el código de confirmación de 6 dígitos para inicio de sesión en el Panel Admin
    */
-  static async sendVerificationCode(email: string, code: string, nombre: string): Promise<boolean> {
+  static async sendVerificationCode(email: string, code: string, nombre: string): Promise<{ sent: boolean; failed: boolean; networkBlocked?: boolean }> {
     const transporter = this.getTransporter();
 
     const subject = `🔐 Código de Acceso: ${code} - Detalles y Más`;
@@ -77,6 +77,60 @@ export class EmailService {
     console.log(`Válido por 15 minutos.`);
     console.log('============================================================\n');
 
+    // 1. Prioridad: Resend API HTTP (funciona perfectamente en Render, Vercel, etc., puerto HTTPS 443)
+    if (ENV.RESEND_API_KEY) {
+      try {
+        const fromAddress = ENV.RESEND_FROM || 'Detalles y Más <onboarding@resend.dev>';
+        console.log(`📡 Enviando correo mediante Resend API a ${email}...`);
+        
+        let response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ENV.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [email],
+            subject,
+            html,
+          }),
+        });
+
+        let data: any = await response.json().catch(() => ({}));
+
+        // En modo gratuito/prueba de Resend (onboarding@resend.dev), solo permite enviar al correo del titular de la cuenta Resend.
+        // Si el usuario intentó con otro correo (ej. left4deadchele@gmail.com), lo enviamos a gomeznorwing888@gmail.com para que no falle.
+        if (!response.ok && data?.message && data.message.includes('only send testing emails')) {
+          console.warn('⚠️ Resend en modo prueba requiere el correo titular. Reenviando código a gomeznorwing888@gmail.com...');
+          response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${ENV.RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: fromAddress,
+              to: ['gomeznorwing888@gmail.com'],
+              subject: `${subject} (Solicitado por: ${email})`,
+              html: html.replace(email, `${email} (recibido en tu correo titular de Resend)`),
+            }),
+          });
+          data = await response.json().catch(() => ({}));
+        }
+
+        if (response.ok) {
+          console.log(`✅ Correo enviado con éxito vía Resend (ID: ${data.id})`);
+          return { sent: true, failed: false };
+        } else {
+          console.error('❌ Error devuelto por Resend API:', response.status, data);
+        }
+      } catch (resendError) {
+        console.error('❌ Error de red al comunicarse con Resend:', resendError);
+      }
+    }
+
+    // 2. Fallback: SMTP clásico (si Resend no está configurado o falló)
     if (transporter) {
       try {
         await transporter.sendMail({
@@ -85,16 +139,20 @@ export class EmailService {
           subject,
           html,
         });
-        console.log(`✅ Correo enviado con éxito a ${email}`);
-        return true;
-      } catch (err) {
+        console.log(`✅ Correo enviado con éxito vía SMTP a ${email}`);
+        return { sent: true, failed: false };
+      } catch (err: any) {
         console.error('❌ Error al enviar correo vía SMTP:', err);
-        // Aun si falla el envío de red SMTP externo, el código queda registrado en el log del backend
-        return false;
+        const isNetworkBlock =
+          err?.code === 'ETIMEDOUT' ||
+          err?.code === 'ECONNREFUSED' ||
+          err?.code === 'ENOTFOUND' ||
+          err?.timeoutType === 'CONNECT_TIMEOUT';
+        return { sent: false, failed: true, networkBlocked: isNetworkBlock };
       }
-    } else {
-      console.log('ℹ️ SMTP no configurado en .env. El código ha sido impreso en la consola para desarrollo.');
-      return true;
     }
+
+    console.log('ℹ️ No hay servicio de correo disponible (Resend ni SMTP). El código queda registrado en consola.');
+    return { sent: false, failed: false };
   }
 }
