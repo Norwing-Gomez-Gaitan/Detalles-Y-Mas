@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -13,8 +13,13 @@ import {
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+
+// Estados posibles del servidor
+type ServerStatus = "warming" | "ready" | "slow" | "offline";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,6 +38,56 @@ export default function LoginPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+
+  // Estado del servidor Render (wake-up ping)
+  const [serverStatus, setServerStatus] = useState<ServerStatus>("warming");
+  const [warmingSeconds, setWarmingSeconds] = useState(0);
+  const warmingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Al montar la página, hacer ping al backend para despertarlo ANTES de que el usuario haga submit
+  useEffect(() => {
+    const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000")
+      .trim()
+      .replace(/\/+$/, "");
+
+    let cancelled = false;
+    const startTime = Date.now();
+
+    // Contador de segundos mientras calienta
+    warmingTimerRef.current = setInterval(() => {
+      setWarmingSeconds(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const pingServer = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/health`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(90_000), // 90 s máximo (Render puede tardar ~60 s)
+        });
+        if (!cancelled) {
+          if (res.ok) {
+            setServerStatus("ready");
+          } else {
+            setServerStatus("slow");
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setServerStatus("offline");
+        }
+      } finally {
+        if (warmingTimerRef.current) clearInterval(warmingTimerRef.current);
+      }
+    };
+
+    // Intentar una vez en cuanto carga la página
+    pingServer();
+
+    return () => {
+      cancelled = true;
+      if (warmingTimerRef.current) clearInterval(warmingTimerRef.current);
+    };
+  }, []);
 
   // Paso 1: Enviar credenciales (correo y contraseña)
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -145,6 +200,41 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Banner de estado del servidor (wake-up Render) */}
+        {serverStatus === "warming" && (
+          <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-300 rounded-lg animate-pulse">
+            <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-800 leading-relaxed">
+              <p className="font-bold mb-0.5">Iniciando servidor…</p>
+              <p>
+                El servidor está despertando ({warmingSeconds}s). Puedes ingresar tus
+                credenciales mientras tanto — el login se enviará cuando esté listo.
+              </p>
+            </div>
+          </div>
+        )}
+        {serverStatus === "ready" && warmingSeconds > 5 && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-xs text-green-800 font-medium">
+            <Wifi className="w-4 h-4 text-green-600 shrink-0" />
+            <span>Servidor listo en {warmingSeconds}s — ya puedes iniciar sesión.</span>
+          </div>
+        )}
+        {serverStatus === "offline" && (
+          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800">
+            <WifiOff className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Servidor no disponible</p>
+              <p>El servidor backend no respondió. Intenta de nuevo en unos momentos o verifica Render.</p>
+            </div>
+          </div>
+        )}
+        {serverStatus === "slow" && (
+          <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-800">
+            <AlertCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+            <p>El servidor está respondiendo lentamente. El login puede tardar unos segundos.</p>
+          </div>
+        )}
+
         {/* Mensaje de Éxito / Info */}
         {mensaje && (
           <div className="p-3 bg-[#EAF3E6] border border-estado-exito/30 text-estado-exito text-xs rounded-lg flex items-start gap-2 font-medium animate-fadeIn">
@@ -208,7 +298,11 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Verificando credenciales...</span>
+                  <span>
+                    {serverStatus === "warming"
+                      ? "Iniciando servidor… puede tardar ~30s"
+                      : "Verificando credenciales..."}
+                  </span>
                 </>
               ) : (
                 <>
